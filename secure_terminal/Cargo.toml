@@ -3,4 +3,14 @@ name = "secure_terminal"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
+wasm-bindgen = "0.2"
+# AES Encryption tools
+aes-gcm = "0.10.3" 
+generic-array = "0.14"
+# For managing global state
+lazy_static = "1.4.0"
+getrandom = { version = "0.2", features = ["js"] }
