@@ -4,43 +4,99 @@
     <meta charset="UTF-8">
     <title>Sangeeth's Secure Terminal</title>
     <style>
-        body { background: #0c0c0c; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; }
+        body { background: #0c0c0c; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; line-height: 1.4; }
         #output { white-space: pre-wrap; margin-bottom: 10px; }
         #input-line { display: flex; }
-        #prompt { color: #ff0055; margin-right: 10px; }
+        #prompt { color: #ff0055; margin-right: 10px; font-weight: bold; }
         input { background: transparent; border: none; color: #00ff41; outline: none; flex: 1; font-family: inherit; font-size: inherit; }
+        .boot-line { color: #00ff41; font-size: 0.85em; }
+        .ok { color: #0c0c0c; background: #00ff41; padding: 0 4px; font-weight: bold; margin-right: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="output">Welcome to Sangeeth-OS v1.0.0. Type 'help' to start.</div>
-    <div id="input-line">
+    <div id="output"></div>
+    <div id="input-line" style="display: none;">
         <span id="prompt">sangeeth@portfolio:~$</span>
-        <input type="text" id="cmd" autofocus>
+        <input type="text" id="cmd" autofocus spellcheck="false" autocomplete="off">
     </div>
 
     <script type="module">
         import init, { run_command } from "../secure_terminal/pkg/secure_terminal.js";
 
+        let history = [];
+        let historyIndex = -1;
+
         async function start() {
-            await init(); // Initialize the WASM module
-            
-            const input = document.getElementById("cmd");
             const output = document.getElementById("output");
+            const inputLine = document.getElementById("input-line");
+            const input = document.getElementById("cmd");
+            const prompt = document.getElementById("prompt");
+
+            // 1. Boot Animation
+            const bootLines = [
+                "[ OK ] Initializing WASM Kernel...",
+                "[ OK ] Mounting Virtual Filesystem...",
+                "[ OK ] Decrypting Secure Blocks...",
+                "[ OK ] User Session: sangeeth_guest verified.",
+                "Welcome to Sangeeth-OS v1.5.0\nType 'help' to begin.\n"
+            ];
+
+            for (const line of bootLines) {
+                const div = document.createElement("div");
+                div.className = "boot-line";
+                div.innerHTML = line.replace("[ OK ]", '<span class="ok"> OK </span>');
+                output.appendChild(div);
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            // 2. Initialize WASM
+            await init(); 
+            inputLine.style.display = "flex";
+            input.focus();
 
             input.addEventListener("keydown", (e) => {
+                // Handle Enter
                 if (e.key === "Enter") {
                     const val = input.value;
+                    if (val.trim() !== "") history.push(val);
+                    historyIndex = history.length;
+
                     const result = run_command(val);
+                    const currentDir = run_command("pwd"); // Ask Rust for current path
 
                     if (result === "CLEARED") {
                         output.innerHTML = "";
                     } else {
-                        output.innerHTML += `\n<span style="color:#ff0055">sangeeth@portfolio:~$</span> ${val}\n${result}\n`;
+                        output.innerHTML += `<div><span style="color:#ff0055">sangeeth@portfolio:${currentDir}$</span> ${val}</div>`;
+                        output.innerHTML += `<div>${result}</div><br>`;
                     }
                     
+                    // Update the visual prompt for the NEXT line
+                    prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
                     input.value = "";
                     window.scrollTo(0, document.body.scrollHeight);
+                }
+
+                // Handle Up Arrow (History)
+                if (e.key === "ArrowUp") {
+                    if (historyIndex > 0) {
+                        historyIndex--;
+                        input.value = history[historyIndex];
+                    }
+                    e.preventDefault();
+                }
+
+                // Handle Down Arrow (History)
+                if (e.key === "ArrowDown") {
+                    if (historyIndex < history.length - 1) {
+                        historyIndex++;
+                        input.value = history[historyIndex];
+                    } else {
+                        historyIndex = history.length;
+                        input.value = "";
+                    }
+                    e.preventDefault();
                 }
             });
         }
