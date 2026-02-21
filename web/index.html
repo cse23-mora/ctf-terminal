@@ -4,13 +4,18 @@
     <meta charset="UTF-8">
     <title>Sangeeth's Secure Terminal</title>
     <style>
-        body { background: #0c0c0c; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; line-height: 1.4; }
+        :root {
+            --bg-color: #0c0c0c;
+            --text-color: #00ff41;
+            --prompt-color: #ff0055;
+        }
+        body { background: var(--bg-color); color: var(--text-color); font-family: 'Courier New', monospace; padding: 20px; line-height: 1.4; transition: background 0.3s, color 0.3s; }
         #output { white-space: pre-wrap; margin-bottom: 10px; }
         #input-line { display: flex; }
-        #prompt { color: #ff0055; margin-right: 10px; font-weight: bold; }
-        input { background: transparent; border: none; color: #00ff41; outline: none; flex: 1; font-family: inherit; font-size: inherit; }
-        .boot-line { color: #00ff41; font-size: 0.85em; }
-        .ok { color: #0c0c0c; background: #00ff41; padding: 0 4px; font-weight: bold; margin-right: 5px; }
+        #prompt { color: var(--prompt-color); margin-right: 10px; font-weight: bold; }
+        input { background: transparent; border: none; color: inherit; outline: none; flex: 1; font-family: inherit; font-size: inherit; }
+        .boot-line { color: var(--text-color); font-size: 0.85em; }
+        .ok { color: var(--bg-color); background: var(--text-color); padding: 0 4px; font-weight: bold; margin-right: 5px; }
     </style>
 </head>
 <body>
@@ -27,6 +32,24 @@
         let history = [];
         let historyIndex = -1;
 
+        const themes = {
+            matrix: { bg: "#0c0c0c", text: "#00ff41", prompt: "#ff0055" },
+            sunset: { bg: "#2d1b2e", text: "#ff9e64", prompt: "#b392f0" },
+            dracula: { bg: "#282a36", text: "#f8f8f2", prompt: "#ff79c6" },
+            light: { bg: "#ffffff", text: "#333333", prompt: "#005cc5" }
+        };
+
+        function setTheme(name) {
+            const theme = themes[name];
+            if (theme) {
+                document.documentElement.style.setProperty('--bg-color', theme.bg);
+                document.documentElement.style.setProperty('--text-color', theme.text);
+                document.documentElement.style.setProperty('--prompt-color', theme.prompt);
+                return `Theme changed to ${name}`;
+            }
+            return `Theme '${name}' not found. Available: ${Object.keys(themes).join(", ")}`;
+        }
+
         async function start() {
             const output = document.getElementById("output");
             const inputLine = document.getElementById("input-line");
@@ -39,7 +62,7 @@
                 "[ OK ] Mounting Virtual Filesystem...",
                 "[ OK ] Decrypting Secure Blocks...",
                 "[ OK ] User Session: sangeeth_guest verified.",
-                "Welcome to Sangeeth-OS v1.5.0\nType 'help' to begin.\n"
+                "Welcome to Sangeeth-OS v2.0.0 (Updated)\nType 'help' to begin.\n"
             ];
 
             for (const line of bootLines) {
@@ -62,13 +85,31 @@
                     if (val.trim() !== "") history.push(val);
                     historyIndex = history.length;
 
-                    const result = run_command(val);
+                    // Handle Client-Side Commands
+                    let result = "";
+                    let handled = false;
+                    const parts = val.trim().split(" ");
+                    const cmd = parts[0];
+
+                    if (cmd === "theme") {
+                        result = setTheme(parts[1]);
+                        handled = true;
+                    } else if (cmd === "history") {
+                        result = history.map((h, i) => `${i + 1}  ${h}`).join("\n");
+                        handled = true;
+                    }
+
+                    // If not handled by JS, ask Rust
+                    if (!handled) {
+                        result = run_command(val);
+                    }
+
                     const currentDir = run_command("pwd"); // Ask Rust for current path
 
                     if (result === "CLEARED") {
                         output.innerHTML = "";
                     } else {
-                        output.innerHTML += `<div><span style="color:#ff0055">sangeeth@portfolio:${currentDir}$</span> ${val}</div>`;
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${val}</div>`;
                         output.innerHTML += `<div>${result}</div><br>`;
                     }
                     
