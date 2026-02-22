@@ -1,7 +1,7 @@
 /// Encryption module for handling data encoding/decoding operations
 /// Uses XOR cipher with a fixed secret key for simple obfuscation
 
-const SECRET_KEY: u8 = 0x53;
+const SECRET_KEY: u64 = 144935935482u64;
 
 /// Decrypts XOR-encoded data to a UTF-8 string
 ///
@@ -11,7 +11,12 @@ const SECRET_KEY: u8 = 0x53;
 /// # Returns
 /// Decrypted string, or "??" if UTF-8 conversion fails
 pub fn decode(data: &[u8]) -> String {
-    let decoded: Vec<u8> = data.iter().map(|&b| b ^ SECRET_KEY).collect();
+    let key_bytes = SECRET_KEY.to_le_bytes();
+    let decoded: Vec<u8> = data
+        .iter()
+        .enumerate()
+        .map(|(i, &b)| b ^ key_bytes[i % key_bytes.len()])
+        .collect();
     String::from_utf8(decoded).unwrap_or_else(|_| "??".to_string())
 }
 
@@ -24,7 +29,12 @@ pub fn decode(data: &[u8]) -> String {
 /// Vector of encrypted bytes
 #[allow(dead_code)]
 pub fn encode(text: &str) -> Vec<u8> {
-    text.as_bytes().iter().map(|&b| b ^ SECRET_KEY).collect()
+    let key_bytes = SECRET_KEY.to_le_bytes();
+    text.as_bytes()
+        .iter()
+        .enumerate()
+        .map(|(i, &b)| b ^ key_bytes[i % key_bytes.len()])
+        .collect()
 }
 
 /// Encodes binary data to Base64

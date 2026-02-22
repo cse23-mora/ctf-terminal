@@ -38,6 +38,10 @@ impl FileSystem {
         fs.create_dir("/home", 0.0);
         fs.create_dir("/bin", 0.0);
         fs.create_dir("/etc", 0.0);
+        fs.create_dir("/boot", 0.0);
+          fs.create_dir("/sys", 0.0);
+            fs.create_dir("/env", 0.0);
+
 
         // Initialize default encrypted files
         // Encrypted: "1. WASM Terminal (Rust)\n2. Encrypted Portfolio"

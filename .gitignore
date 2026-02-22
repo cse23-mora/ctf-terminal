@@ -1,3 +1,4 @@
 secure_terminal/target/*
 
 secure_terminal/encrypt
+secure_terminal/src/decrypt
