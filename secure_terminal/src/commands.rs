@@ -8,7 +8,7 @@ use crate::TerminalState;
 use js_sys::Date;
 use wasm_bindgen::prelude::JsValue;
 
-const SUDO_PASSWORD: &str = "sangeeth"; // Default sudo password
+const SUDO_PASSWORD: &str = "Sangeeth@mypass123"; // Default sudo password
 const THEMES: [&str; 4] = ["matrix", "sunset", "dracula", "light"];
 
 /// Executes a shell command on the virtual filesystem
@@ -241,7 +241,7 @@ fn handle_echo(args: &[&str]) -> String {
 
 /// whoami - Display current user (encrypted)
 fn handle_whoami() -> String {
-    decode(&[18, 33, 48, 59, 31, 58, 61, 38, 43, 12, 0, 50, 61, 52, 54, 54, 39, 59])
+    decode(&[180, 180, 170, 203, 79, 83, 71, 101, 159, 137, 146])
 }
 
 /// newtab - Ask frontend to open a URL in a new tab
