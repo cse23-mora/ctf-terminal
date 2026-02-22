@@ -3,6 +3,8 @@
 
 use std::collections::HashMap;
 
+const LOGO_PNG: &[u8] = include_bytes!("../assets/logo.png");
+
 /// Represents the type of a filesystem node
 #[derive(Clone, PartialEq, Debug)]
 pub enum FileType {
@@ -66,6 +68,7 @@ impl FileSystem {
         let sudo_pssed_content = vec![169, 188, 180, 217, 68, 101, 116, 104, 186, 176, 163, 206, 64, 115, 115, 49, 200, 238];
 
         fs.create_file("/env/mypass.txt", sudo_pssed_content, 0.0);
+        fs.create_file("/home/document/logo.png", LOGO_PNG.to_vec(), 0.0);
 
         fs
     }

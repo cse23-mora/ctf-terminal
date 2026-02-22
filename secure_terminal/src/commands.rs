@@ -11,6 +11,29 @@ use wasm_bindgen::prelude::JsValue;
 const SUDO_PASSWORD: &str = "Sangeeth@mypass123"; // Default sudo password
 const THEMES: [&str; 4] = ["matrix", "sunset", "dracula", "light"];
 
+fn is_binary_file(path: &str, content: &[u8]) -> bool {
+    let lower = path.to_ascii_lowercase();
+    let binary_ext = [
+        ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp", ".ico", ".svg", ".pdf", ".zip",
+        ".gz", ".tar", ".mp3", ".mp4", ".wasm",
+    ];
+
+    if binary_ext.iter().any(|ext| lower.ends_with(ext)) {
+        return true;
+    }
+
+    // PNG signature bytes: 89 50 4E 47 0D 0A 1A 0A
+    content.len() >= 8
+        && content[0] == 0x89
+        && content[1] == 0x50
+        && content[2] == 0x4E
+        && content[3] == 0x47
+        && content[4] == 0x0D
+        && content[5] == 0x0A
+        && content[6] == 0x1A
+        && content[7] == 0x0A
+}
+
 /// Executes a shell command on the virtual filesystem
 ///
 /// # Arguments
@@ -163,6 +186,12 @@ fn handle_cat(fs: &FileSystem, args: &[&str]) -> String {
     }
 
     if let Some(content) = fs.get_file_content(&target) {
+        if is_binary_file(&target, content) {
+            return format!(
+                "cat: {}: binary file (use downld to download)",
+                args[0]
+            );
+        }
         decode(content)
     } else {
         "Error reading file".to_string()
@@ -333,9 +362,12 @@ fn handle_download(fs: &FileSystem, args: &[&str]) -> String {
 
     if let Some(content) = fs.get_file_content(&target) {
         let filename = args[0].split('/').last().unwrap_or("file");
-        let decrypted = decode(content);
-        let decrypted_bytes = decrypted.as_bytes();
-        let b64 = base64_encode(decrypted_bytes);
+        let b64 = if is_binary_file(&target, content) {
+            base64_encode(content)
+        } else {
+            let decrypted = decode(content);
+            base64_encode(decrypted.as_bytes())
+        };
         format!("DOWNLOAD:{}:{}", filename, b64)
     } else {
         "Error reading file".to_string()
