@@ -88,6 +88,7 @@ pub fn execute_command(
         "date" => handle_date(now),
         "echo" => handle_echo(args),
         "whoami" => handle_whoami(),
+        "sudo" => handle_sudo_usage(),
         "newtab" => handle_newtab(args),
         "history" => handle_history(term),
         "theme" => handle_theme(term, args),
@@ -97,6 +98,11 @@ pub fn execute_command(
         "downld" => handle_download(fs, args),
         _ => format!("command not found: {}. Type 'help' for info.", cmd),
     }
+}
+
+/// sudo - Usage helper when no subcommand is provided
+fn handle_sudo_usage() -> String {
+    "Usage: sudo <command> [args...]\nExample: sudo rm projects.txt".to_string()
 }
 
 /// pwd - Print working directory
