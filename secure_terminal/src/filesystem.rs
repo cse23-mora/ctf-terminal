@@ -28,6 +28,32 @@ pub struct FileSystem {
 }
 
 impl FileSystem {
+    fn parent_path(path: &str) -> Option<String> {
+        if path == "/" {
+            return None;
+        }
+
+        path.rfind('/').map(|idx| {
+            if idx == 0 {
+                "/".to_string()
+            } else {
+                path[..idx].to_string()
+            }
+        })
+    }
+
+    fn has_path_prefix(path: &str, base: &str) -> bool {
+        path == base || path.starts_with(&(base.to_string() + "/"))
+    }
+
+    fn remap_path(path: &str, src: &str, dst: &str) -> String {
+        if path == src {
+            dst.to_string()
+        } else {
+            format!("{}/{}", dst, &path[src.len() + 1..])
+        }
+    }
+
     /// Creates a new filesystem with default structure and files
     pub fn new() -> Self {
         let mut fs = FileSystem {
@@ -201,6 +227,91 @@ impl FileSystem {
         }
 
         self.nodes.remove(path).is_some()
+    }
+
+    /// Copies a file or directory recursively to a new path
+    pub fn copy_path(&mut self, src: &str, dst: &str) -> Result<(), String> {
+        if src == "/" {
+            return Err("cannot copy root directory".to_string());
+        }
+
+        if !self.exists(src) {
+            return Err(format!("cannot stat '{}': No such file or directory", src));
+        }
+
+        if self.exists(dst) {
+            return Err(format!("cannot create '{}': File exists", dst));
+        }
+
+        let parent = Self::parent_path(dst)
+            .ok_or_else(|| format!("cannot create '{}': Invalid destination", dst))?;
+        if !self.exists(&parent) || !self.is_dir(&parent) {
+            return Err(format!("cannot create '{}': No such directory", dst));
+        }
+
+        if self.is_dir(src) && Self::has_path_prefix(dst, src) {
+            return Err("cannot copy a directory into itself".to_string());
+        }
+
+        let entries: Vec<(String, FileNode)> = self
+            .nodes
+            .iter()
+            .filter(|(path, _)| Self::has_path_prefix(path, src))
+            .map(|(path, node)| (Self::remap_path(path, src, dst), node.clone()))
+            .collect();
+
+        for (new_path, node) in entries {
+            self.nodes.insert(new_path, node);
+        }
+
+        Ok(())
+    }
+
+    /// Moves (renames) a file or directory recursively to a new path
+    pub fn move_path(&mut self, src: &str, dst: &str) -> Result<(), String> {
+        if src == "/" {
+            return Err("cannot move root directory".to_string());
+        }
+
+        if !self.exists(src) {
+            return Err(format!("cannot stat '{}': No such file or directory", src));
+        }
+
+        if self.exists(dst) {
+            return Err(format!("cannot move to '{}': File exists", dst));
+        }
+
+        let parent =
+            Self::parent_path(dst).ok_or_else(|| format!("cannot move to '{}': Invalid destination", dst))?;
+        if !self.exists(&parent) || !self.is_dir(&parent) {
+            return Err(format!("cannot move to '{}': No such directory", dst));
+        }
+
+        if self.is_dir(src) && Self::has_path_prefix(dst, src) {
+            return Err("cannot move a directory into itself".to_string());
+        }
+
+        let entries: Vec<(String, FileNode)> = self
+            .nodes
+            .iter()
+            .filter(|(path, _)| Self::has_path_prefix(path, src))
+            .map(|(path, node)| (path.clone(), node.clone()))
+            .collect();
+
+        for (old_path, _) in &entries {
+            self.nodes.remove(old_path);
+        }
+
+        for (old_path, node) in entries {
+            let new_path = Self::remap_path(&old_path, src, dst);
+            self.nodes.insert(new_path, node);
+        }
+
+        if Self::has_path_prefix(&self.current_path, src) {
+            self.current_path = Self::remap_path(&self.current_path, src, dst);
+        }
+
+        Ok(())
     }
 }
 

@@ -34,6 +34,24 @@ fn is_binary_file(path: &str, content: &[u8]) -> bool {
         && content[7] == 0x0A
 }
 
+fn basename(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
+}
+
+fn resolve_copy_move_destination(fs: &FileSystem, source: &str, destination_arg: &str) -> String {
+    let destination = fs.resolve_path(destination_arg);
+    if fs.exists(&destination) && fs.is_dir(&destination) {
+        let name = basename(source);
+        if destination == "/" {
+            format!("/{}", name)
+        } else {
+            format!("{}/{}", destination, name)
+        }
+    } else {
+        destination
+    }
+}
+
 /// Executes a shell command on the virtual filesystem
 ///
 /// # Arguments
@@ -107,6 +125,8 @@ pub fn execute_command(
         "cat" => handle_cat(fs, args),
         "mkdir" => handle_mkdir(fs, args, now),
         "touch" => handle_touch(fs, args, now),
+        "cp" => handle_cp(fs, args),
+        "mv" => handle_mv(fs, args),
         "rm" => handle_rm(fs, sudo, args),
         "date" => handle_date(now),
         "echo" => handle_echo(args),
@@ -229,6 +249,50 @@ fn handle_touch(fs: &mut FileSystem, args: &[&str], now: f64) -> String {
     "".to_string()
 }
 
+/// cp - Copy files and directories
+fn handle_cp(fs: &mut FileSystem, args: &[&str]) -> String {
+    if args.len() < 2 {
+        return "Usage: cp <source> <destination>".to_string();
+    }
+
+    let source = fs.resolve_path(args[0]);
+    if !fs.exists(&source) {
+        return format!("cp: cannot stat '{}': No such file or directory", args[0]);
+    }
+
+    let destination = resolve_copy_move_destination(fs, &source, args[1]);
+    if source == destination {
+        return format!("cp: '{}' and '{}' are the same file", args[0], args[1]);
+    }
+
+    match fs.copy_path(&source, &destination) {
+        Ok(()) => "".to_string(),
+        Err(err) => format!("cp: {}", err),
+    }
+}
+
+/// mv - Move or rename files and directories
+fn handle_mv(fs: &mut FileSystem, args: &[&str]) -> String {
+    if args.len() < 2 {
+        return "Usage: mv <source> <destination>".to_string();
+    }
+
+    let source = fs.resolve_path(args[0]);
+    if !fs.exists(&source) {
+        return format!("mv: cannot stat '{}': No such file or directory", args[0]);
+    }
+
+    let destination = resolve_copy_move_destination(fs, &source, args[1]);
+    if source == destination {
+        return "".to_string();
+    }
+
+    match fs.move_path(&source, &destination) {
+        Ok(()) => "".to_string(),
+        Err(err) => format!("mv: {}", err),
+    }
+}
+
 /// rm - Remove file or empty directory (requires sudo authentication)
 fn handle_rm(fs: &mut FileSystem, sudo: &SudoState, args: &[&str]) -> String {
     if args.is_empty() {
@@ -341,7 +405,7 @@ fn handle_reboot(fs: &mut FileSystem, sudo: &mut SudoState, term: &mut TerminalS
 
 /// help - Display available commands
 fn handle_help() -> String {
-    "Available commands: ls, cd, pwd, cat, mkdir, touch, rm, sudo, date, echo, whoami, history, theme, newtab, reboot, downld, clear".to_string()
+    "Available commands: ls, cd, pwd, cat, mkdir, touch, cp, mv, rm, sudo, date, echo, whoami, history, theme, newtab, reboot, downld, clear".to_string()
 }
 
 /// downld - Download file (returns base64 encoded content)
