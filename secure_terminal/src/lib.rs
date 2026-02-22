@@ -15,8 +15,26 @@ extern crate lazy_static;
 
 use filesystem::FileSystem;
 
+/// Sudo session state - tracks authentication and password prompts
+pub struct SudoState {
+    pub authenticated: bool,
+    pub waiting_for_password: bool,
+    pub pending_command: Option<String>, // The command waiting for password confirmation
+}
+
+impl SudoState {
+    pub fn new() -> Self {
+        SudoState {
+            authenticated: false,
+            waiting_for_password: false,
+            pending_command: None,
+        }
+    }
+}
+
 lazy_static! {
     static ref FS: Mutex<FileSystem> = Mutex::new(FileSystem::new());
+    static ref SUDO: Mutex<SudoState> = Mutex::new(SudoState::new());
 }
 
 /// Main WebAssembly entry point
@@ -30,5 +48,6 @@ lazy_static! {
 #[wasm_bindgen]
 pub fn run_command(input: &str) -> String {
     let mut fs = FS.lock().unwrap();
-    commands::execute_command(&mut fs, input)
+    let mut sudo = SUDO.lock().unwrap();
+    commands::execute_command(&mut fs, &mut sudo, input)
 }

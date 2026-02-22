@@ -101,9 +101,10 @@ help             # List all available commands
 
 #### Utilities
 ```bash
-echo "Hello"     # Print text
-clear            # Clear terminal
-downld projects.txt  # Download file as base64
+echo "Hello"           # Print text
+clear                  # Clear terminal
+downld projects.txt    # Download file as base64
+sudo rm filename       # Remove file (password will be asked)
 ```
 
 ### Built-in Files

@@ -3,18 +3,39 @@
 
 use crate::encryption::{decode, base64_encode};
 use crate::filesystem::FileSystem;
+use crate::SudoState;
 use js_sys::Date;
 use wasm_bindgen::prelude::JsValue;
+
+const SUDO_PASSWORD: &str = "sangeeth"; // Default sudo password
 
 /// Executes a shell command on the virtual filesystem
 ///
 /// # Arguments
 /// * `fs` - Mutable reference to the filesystem
+/// * `sudo` - Mutable reference to sudo state
 /// * `input` - The command string to execute
 ///
 /// # Returns
 /// Command output as a string
-pub fn execute_command(fs: &mut FileSystem, input: &str) -> String {
+pub fn execute_command(fs: &mut FileSystem, sudo: &mut SudoState, input: &str) -> String {
+    // Check if we're waiting for a password
+    if sudo.waiting_for_password {
+        // Verify the password
+        if input.trim() == SUDO_PASSWORD {
+            sudo.waiting_for_password = false;
+            sudo.authenticated = true;
+            
+            // Execute the pending command
+            if let Some(cmd_str) = sudo.pending_command.take() {
+                return execute_command(fs, sudo, &cmd_str);
+            }
+            return "[sudo] authenticated successfully".to_string();
+        } else {
+            return "[sudo] Sorry, try again.".to_string();
+        }
+    }
+
     let parts: Vec<&str> = input.trim().split_whitespace().collect();
     if parts.is_empty() {
         return "".to_string();
@@ -24,6 +45,20 @@ pub fn execute_command(fs: &mut FileSystem, input: &str) -> String {
     let args = &parts[1..];
     let now = Date::now();
 
+    // Handle sudo command: sudo <command> [args...]
+    if cmd == "sudo" && !args.is_empty() {
+        let actual_cmd = args[0];
+        let actual_args = &args[1..];
+        
+        // Build the full command to execute after password
+        let full_cmd = format!("{} {}", actual_cmd, actual_args.join(" "));
+        
+        // Ask for password
+        sudo.waiting_for_password = true;
+        sudo.pending_command = Some(full_cmd);
+        return "[sudo] password: ".to_string();
+    }
+
     match cmd {
         "pwd" => handle_pwd(fs),
         "cd" => handle_cd(fs, args),
@@ -31,7 +66,7 @@ pub fn execute_command(fs: &mut FileSystem, input: &str) -> String {
         "cat" => handle_cat(fs, args),
         "mkdir" => handle_mkdir(fs, args, now),
         "touch" => handle_touch(fs, args, now),
-        "rm" => handle_rm(fs, args),
+        "rm" => handle_rm(fs, sudo, args),
         "date" => handle_date(now),
         "echo" => handle_echo(args),
         "whoami" => handle_whoami(),
@@ -137,10 +172,15 @@ fn handle_touch(fs: &mut FileSystem, args: &[&str], now: f64) -> String {
     "".to_string()
 }
 
-/// rm - Remove file or empty directory
-fn handle_rm(fs: &mut FileSystem, args: &[&str]) -> String {
+/// rm - Remove file or empty directory (requires sudo authentication)
+fn handle_rm(fs: &mut FileSystem, sudo: &SudoState, args: &[&str]) -> String {
     if args.is_empty() {
         return "Usage: rm <filename>".to_string();
+    }
+
+    // Check if user is authenticated with sudo
+    if !sudo.authenticated {
+        return "rm: Permission denied. Use 'sudo <password> rm <filename>' or 'sudo <password>' first.".to_string();
     }
 
     let target = fs.resolve_path(args[0]);
@@ -178,8 +218,7 @@ fn handle_whoami() -> String {
 
 /// help - Display available commands
 fn handle_help() -> String {
-    "Available commands: ls, cd, pwd, cat, mkdir, touch, rm, date, echo, whoami, downld, clear"
-        .to_string()
+    "Available commands: ls, cd, pwd, cat, mkdir, touch, rm, sudo, date, echo, whoami, downld, clear".to_string()
 }
 
 /// downld - Download file (returns base64 encoded content)

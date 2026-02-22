@@ -116,6 +116,8 @@
             const input = document.getElementById("cmd");
             const prompt = document.getElementById("prompt");
 
+            let waitingForPassword = false; // Track password prompt state
+
             // 1. Boot Animation
             const bootLines = [
                 "[ OK ] Initializing WASM Kernel...",
@@ -161,6 +163,48 @@
                 // Handle Enter
                 if (e.key === "Enter") {
                     const val = input.value;
+
+                    // Handle password input (when waiting for password)
+                    if (waitingForPassword) {
+                        // Send password to backend (without echoing it or adding to history)
+                        const result = run_command(val);
+                        
+                        if (result === "[sudo] Sorry, try again.") {
+                            // Password was rejected, ask again
+                            output.innerHTML += `<div style="color:#ff0055;">Sorry, try again.</div>`;
+                            output.innerHTML += `<div style="color:var(--prompt-color);">[sudo] password: </div>`;
+                            waitingForPassword = true;
+                        } else if (result.startsWith("DOWNLOAD:")) {
+                            // Download command executed after sudo
+                            waitingForPassword = false;
+                            const currentDir = run_command("pwd");
+                            const parts = result.split(":");
+                            const filename = parts[1];
+                            const b64Content = parts.slice(2).join(":");
+                            const binaryData = base64_decode(b64Content);
+                            
+                            output.innerHTML += `<div style="color: #00ff41;">✓ Downloading: ${filename}</div><br>`;
+                            triggerDownload(filename, binaryData);
+                            prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                        } else {
+                            // Command executed successfully or returned result
+                            waitingForPassword = false;
+                            const currentDir = run_command("pwd");
+                            if (result !== "" && result !== "[sudo] authenticated successfully") {
+                                output.innerHTML += `<div>${result}</div><br>`;
+                            } else if (result === "[sudo] authenticated successfully") {
+                                // Silently authenticate, don't show message
+                            }
+                            prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                        }
+                        
+                        input.value = "";
+                        window.scrollTo(0, document.body.scrollHeight);
+                        input.focus();
+                        return;
+                    }
+
+                    // For regular commands, add to history
                     if (val.trim() !== "") history.push(val);
                     historyIndex = history.length;
 
@@ -187,6 +231,16 @@
 
                     if (result === "CLEARED") {
                         output.innerHTML = "";
+                    } else if (result.startsWith("[sudo] password:")) {
+                        // Password prompt - wait for next input
+                        waitingForPassword = true;
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${val}</div>`;
+                        output.innerHTML += `<div style="color:var(--prompt-color);">${result}</div>`;
+                        input.value = "";
+                        prompt.innerText = ""; // Hide the prompt while waiting for password
+                        window.scrollTo(0, document.body.scrollHeight);
+                        input.focus();
+                        return;
                     } else if (result.startsWith("DOWNLOAD:")) {
                         // Handle download command
                         const parts = result.split(":");
@@ -204,10 +258,11 @@
                     }
                     
                     // Update the visual prompt for the NEXT line
-                    prompt.innerText = `Sangeeth@portfolio:${currentDir}$`;
+                    prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
                     input.value = "";
                     window.scrollTo(0, document.body.scrollHeight);
                 }
+
 
                 // Handle Up Arrow (History)
                 if (e.key === "ArrowUp") {
