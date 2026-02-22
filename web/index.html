@@ -190,6 +190,20 @@
             input.focus();
 
             input.addEventListener("keydown", async (e) => {
+                // Allow Ctrl+C to cancel sudo password prompt
+                if (waitingForPassword && e.ctrlKey && (e.key === "c" || e.key === "C")) {
+                    e.preventDefault();
+                    run_command("__INTERRUPT__");
+                    waitingForPassword = false;
+                    const currentDir = run_command("__pwd__");
+                    output.innerHTML += `<div>^C</div><br>`;
+                    prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                    input.value = "";
+                    window.scrollTo(0, document.body.scrollHeight);
+                    input.focus();
+                    return;
+                }
+
                 // Handle Tab for autocomplete
                 if (e.key === "Tab") {
                     e.preventDefault();

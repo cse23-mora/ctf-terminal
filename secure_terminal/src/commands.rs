@@ -70,6 +70,12 @@ pub fn execute_command(
 ) -> String {
     // Check if we're waiting for a password
     if sudo.waiting_for_password {
+        if input.trim() == "__INTERRUPT__" || input.trim() == "^C" {
+            sudo.waiting_for_password = false;
+            sudo.pending_command = None;
+            return "^C".to_string();
+        }
+
         // Verify the password
         if input.trim() == SUDO_PASSWORD {
             sudo.waiting_for_password = false;
