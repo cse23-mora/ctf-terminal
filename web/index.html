@@ -50,6 +50,38 @@
             return `Theme '${name}' not found. Available: ${Object.keys(themes).join(", ")}`;
         }
 
+        function base64_decode(str) {
+            const TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+            const bytes = [];
+            
+            for (let i = 0; i < str.length; i += 4) {
+                const b1 = TABLE.indexOf(str[i]);
+                const b2 = TABLE.indexOf(str[i + 1]);
+                const b3 = str[i + 2] === '=' ? 0 : TABLE.indexOf(str[i + 2]);
+                const b4 = str[i + 3] === '=' ? 0 : TABLE.indexOf(str[i + 3]);
+                
+                const n = ((b1 << 18) | (b2 << 12) | (b3 << 6) | b4);
+                
+                bytes.push((n >> 16) & 0xFF);
+                if (str[i + 2] !== '=') bytes.push((n >> 8) & 0xFF);
+                if (str[i + 3] !== '=') bytes.push(n & 0xFF);
+            }
+            
+            return new Uint8Array(bytes);
+        }
+
+        function triggerDownload(filename, data) {
+            const blob = new Blob([data], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
         async function start() {
             const output = document.getElementById("output");
             const inputLine = document.getElementById("input-line");
@@ -108,6 +140,17 @@
 
                     if (result === "CLEARED") {
                         output.innerHTML = "";
+                    } else if (result.startsWith("DOWNLOAD:")) {
+                        // Handle download command
+                        const parts = result.split(":");
+                        const filename = parts[1];
+                        const b64Content = parts.slice(2).join(":");
+                        const binaryData = base64_decode(b64Content);
+                        
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${val}</div>`;
+                        output.innerHTML += `<div style="color: #00ff41;">✓ Downloading: ${filename}</div><br>`;
+                        
+                        triggerDownload(filename, binaryData);
                     } else {
                         output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${val}</div>`;
                         output.innerHTML += `<div>${result}</div><br>`;

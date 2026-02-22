@@ -23,6 +23,7 @@ enum FileType {
 struct FileNode {
     ftype: FileType,
     content: Vec<u8>,
+    #[allow(dead_code)]
     timestamp: f64,
 }
 
@@ -235,10 +236,61 @@ pub fn run_command(input: &str) -> String {
 
         "whoami" => decode(&[36, 26, 25, 20, 18, 18, 37, 21, 40, 11, 38, 18, 36, 37]),
 
-        "help" => "Available commands: ls, cd, pwd, cat, mkdir, touch, rm, date, echo, whoami, clear".to_string(),
+        "help" => "Available commands: ls, cd, pwd, cat, mkdir, touch, rm, date, echo, whoami, downld, clear".to_string(),
 
         "clear" => "CLEARED".to_string(),
 
+        "downld" => {
+            if args.is_empty() { 
+                return "Usage: download <filename>".to_string(); 
+            }
+            let target = fs.resolve_path(args[0]);
+            if let Some(node) = fs.nodes.get(&target) {
+                if node.ftype == FileType::File {
+                    // Decrypt the content first, then encode as base64 for transfer
+                    let filename = args[0].split('/').last().unwrap_or("file");
+                    let decrypted = decode(&node.content);
+                    let decrypted_bytes = decrypted.as_bytes();
+                    let b64 = base64_encode(decrypted_bytes);
+                    format!("DOWNLOAD:{}:{}", filename, b64)
+                } else {
+                    format!("download: {}: Is a directory", args[0])
+                }
+            } else {
+                format!("download: {}: No such file", args[0])
+            }
+        },
+
         _ => format!("command not found: {}. Type 'help' for info.", cmd),
     }
+}
+
+fn base64_encode(input: &[u8]) -> String {
+    const TABLE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut result = String::new();
+    
+    for chunk in input.chunks(3) {
+        let b1 = chunk[0];
+        let b2 = if chunk.len() > 1 { chunk[1] } else { 0 };
+        let b3 = if chunk.len() > 2 { chunk[2] } else { 0 };
+        
+        let n = ((b1 as u32) << 16) | ((b2 as u32) << 8) | (b3 as u32);
+        
+        result.push(TABLE[((n >> 18) & 63) as usize] as char);
+        result.push(TABLE[((n >> 12) & 63) as usize] as char);
+        
+        if chunk.len() > 1 {
+            result.push(TABLE[((n >> 6) & 63) as usize] as char);
+        } else {
+            result.push('=');
+        }
+        
+        if chunk.len() > 2 {
+            result.push(TABLE[(n & 63) as usize] as char);
+        } else {
+            result.push('=');
+        }
+    }
+    
+    result
 }
