@@ -82,6 +82,34 @@
             URL.revokeObjectURL(url);
         }
 
+        function getAvailableCompletions(input) {
+            const commands = ["ls", "cd", "pwd", "cat", "mkdir", "touch", "rm", "date", "echo", "whoami", "downld", "clear", "theme", "history"];
+            const parts = input.trim().split(" ");
+            
+            // If we're completing a command (first word)
+            if (parts.length === 1) {
+                const prefix = parts[0];
+                return commands.filter(cmd => cmd.startsWith(prefix));
+            }
+            
+            // If we're completing a filename (second word or later)
+            const prefix = parts[parts.length - 1];
+            const lsResult = run_command("ls");
+            const files = lsResult.split(/\s+/).filter(f => f.trim() !== "");
+            return files.filter(f => f.startsWith(prefix));
+        }
+
+        function autocomplete(input, completions) {
+            if (completions.length === 0) return input;
+            if (completions.length === 1) {
+                const parts = input.trim().split(" ");
+                parts[parts.length - 1] = completions[0];
+                return parts.join(" ");
+            }
+            // Multiple matches - show them
+            return input;
+        }
+
         async function start() {
             const output = document.getElementById("output");
             const inputLine = document.getElementById("input-line");
@@ -111,6 +139,25 @@
             input.focus();
 
             input.addEventListener("keydown", (e) => {
+                // Handle Tab for autocomplete
+                if (e.key === "Tab") {
+                    e.preventDefault();
+                    const completions = getAvailableCompletions(input.value);
+                    
+                    if (completions.length === 1) {
+                        // Auto-complete if only one match
+                        input.value = autocomplete(input.value, completions);
+                        if (!input.value.endsWith(" ") && !input.value.endsWith("/")) {
+                            input.value += " ";
+                        }
+                    } else if (completions.length > 1) {
+                        // Show available completions
+                        output.innerHTML += `<div style="color: #ffaa00;">Completions: ${completions.join("   ")}</div>`;
+                        window.scrollTo(0, document.body.scrollHeight);
+                    }
+                    return;
+                }
+
                 // Handle Enter
                 if (e.key === "Enter") {
                     const val = input.value;
