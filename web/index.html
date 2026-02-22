@@ -50,6 +50,13 @@
             return `Theme '${name}' not found. Available: ${Object.keys(themes).join(", ")}`;
         }
 
+        function escapeHtml(text) {
+            return text
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;");
+        }
+
         function base64_decode(str) {
             const TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
             const bytes = [];
@@ -82,8 +89,37 @@
             URL.revokeObjectURL(url);
         }
 
+        function openInNewTab(rawUrl) {
+            if (!rawUrl || rawUrl.trim() === "") {
+                return "Usage: newtab <url>";
+            }
+
+            let normalized = rawUrl.trim();
+            if (!/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(normalized)) {
+                normalized = `https://${normalized}`;
+            }
+
+            let parsed;
+            try {
+                parsed = new URL(normalized);
+            } catch {
+                return `newtab: invalid URL '${rawUrl}'`;
+            }
+
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+                return "newtab: only http/https URLs are allowed";
+            }
+
+            const opened = window.open(parsed.toString(), "_blank", "noopener,noreferrer");
+            if (!opened) {
+                return "newtab: popup blocked by browser. Allow popups for this site.";
+            }
+
+            return `Opened new tab: ${parsed.toString()}`;
+        }
+
         function getAvailableCompletions(input) {
-            const commands = ["ls", "cd", "pwd", "cat", "mkdir", "touch", "rm", "date", "echo", "whoami", "downld", "clear", "theme", "history"];
+            const commands = ["ls", "cd", "pwd", "cat", "mkdir", "touch", "rm", "date", "echo", "whoami", "downld", "clear", "theme", "history", "newtab"];
             const parts = input.trim().split(" ");
             
             // If we're completing a command (first word)
@@ -94,7 +130,7 @@
             
             // If we're completing a filename (second word or later)
             const prefix = parts[parts.length - 1];
-            const lsResult = run_command("ls");
+            const lsResult = run_command("__ls__");
             const files = lsResult.split(/\s+/).filter(f => f.trim() !== "");
             return files.filter(f => f.startsWith(prefix));
         }
@@ -154,7 +190,7 @@
                         }
                     } else if (completions.length > 1) {
                         // Show available completions
-                        output.innerHTML += `<div style="color: #ffaa00;">Completions: ${completions.join("   ")}</div>`;
+                        output.innerHTML += `<div style="color: #ffaa00;">Completions: ${escapeHtml(completions.join("   "))}</div>`;
                         window.scrollTo(0, document.body.scrollHeight);
                     }
                     return;
@@ -177,7 +213,7 @@
                         } else if (result.startsWith("DOWNLOAD:")) {
                             // Download command executed after sudo
                             waitingForPassword = false;
-                            const currentDir = run_command("pwd");
+                            const currentDir = run_command("__pwd__");
                             const parts = result.split(":");
                             const filename = parts[1];
                             const b64Content = parts.slice(2).join(":");
@@ -186,12 +222,25 @@
                             output.innerHTML += `<div style="color: #00ff41;">✓ Downloading: ${filename}</div><br>`;
                             triggerDownload(filename, binaryData);
                             prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                        } else if (result.startsWith("NEWTAB:")) {
+                            waitingForPassword = false;
+                            const currentDir = run_command("__pwd__");
+                            const openMessage = openInNewTab(result.slice("NEWTAB:".length));
+                            output.innerHTML += `<div>${escapeHtml(openMessage)}</div><br>`;
+                            prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                        } else if (result.startsWith("THEME:")) {
+                            waitingForPassword = false;
+                            const currentDir = run_command("__pwd__");
+                            const themeName = result.slice("THEME:".length);
+                            const themeMessage = setTheme(themeName);
+                            output.innerHTML += `<div>${escapeHtml(themeMessage)}</div><br>`;
+                            prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
                         } else {
                             // Command executed successfully or returned result
                             waitingForPassword = false;
-                            const currentDir = run_command("pwd");
+                            const currentDir = run_command("__pwd__");
                             if (result !== "" && result !== "[sudo] authenticated successfully") {
-                                output.innerHTML += `<div>${result}</div><br>`;
+                                output.innerHTML += `<div>${escapeHtml(result)}</div><br>`;
                             } else if (result === "[sudo] authenticated successfully") {
                                 // Silently authenticate, don't show message
                             }
@@ -208,34 +257,17 @@
                     if (val.trim() !== "") history.push(val);
                     historyIndex = history.length;
 
-                    // Handle Client-Side Commands
-                    let result = "";
-                    let handled = false;
-                    const parts = val.trim().split(" ");
-                    const cmd = parts[0];
+                    let result = run_command(val);
 
-                    if (cmd === "theme") {
-                        result = setTheme(parts[1]);
-                        handled = true;
-                    } else if (cmd === "history") {
-                        result = history.map((h, i) => `${i + 1}  ${h}`).join("\n");
-                        handled = true;
-                    }
-
-                    // If not handled by JS, ask Rust
-                    if (!handled) {
-                        result = run_command(val);
-                    }
-
-                    const currentDir = run_command("pwd"); // Ask Rust for current path
+                    const currentDir = run_command("__pwd__"); // Ask Rust for current path
 
                     if (result === "CLEARED") {
                         output.innerHTML = "";
                     } else if (result.startsWith("[sudo] password:")) {
                         // Password prompt - wait for next input
                         waitingForPassword = true;
-                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${val}</div>`;
-                        output.innerHTML += `<div style="color:var(--prompt-color);">${result}</div>`;
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
+                        output.innerHTML += `<div style="color:var(--prompt-color);">${escapeHtml(result)}</div>`;
                         input.value = "";
                         prompt.innerText = ""; // Hide the prompt while waiting for password
                         window.scrollTo(0, document.body.scrollHeight);
@@ -248,13 +280,22 @@
                         const b64Content = parts.slice(2).join(":");
                         const binaryData = base64_decode(b64Content);
                         
-                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${val}</div>`;
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
                         output.innerHTML += `<div style="color: #00ff41;">✓ Downloading: ${filename}</div><br>`;
                         
                         triggerDownload(filename, binaryData);
+                    } else if (result.startsWith("NEWTAB:")) {
+                        const openMessage = openInNewTab(result.slice("NEWTAB:".length));
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
+                        output.innerHTML += `<div>${escapeHtml(openMessage)}</div><br>`;
+                    } else if (result.startsWith("THEME:")) {
+                        const themeName = result.slice("THEME:".length);
+                        const themeMessage = setTheme(themeName);
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
+                        output.innerHTML += `<div>${escapeHtml(themeMessage)}</div><br>`;
                     } else {
-                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${val}</div>`;
-                        output.innerHTML += `<div>${result}</div><br>`;
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
+                        output.innerHTML += `<div>${escapeHtml(result)}</div><br>`;
                     }
                     
                     // Update the visual prompt for the NEXT line

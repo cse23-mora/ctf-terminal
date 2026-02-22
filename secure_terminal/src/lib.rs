@@ -32,9 +32,25 @@ impl SudoState {
     }
 }
 
+/// Terminal session state for backend-managed commands
+pub struct TerminalState {
+    pub history: Vec<String>,
+    pub theme: String,
+}
+
+impl TerminalState {
+    pub fn new() -> Self {
+        TerminalState {
+            history: Vec::new(),
+            theme: "matrix".to_string(),
+        }
+    }
+}
+
 lazy_static! {
     static ref FS: Mutex<FileSystem> = Mutex::new(FileSystem::new());
     static ref SUDO: Mutex<SudoState> = Mutex::new(SudoState::new());
+    static ref TERM: Mutex<TerminalState> = Mutex::new(TerminalState::new());
 }
 
 /// Main WebAssembly entry point
@@ -49,5 +65,6 @@ lazy_static! {
 pub fn run_command(input: &str) -> String {
     let mut fs = FS.lock().unwrap();
     let mut sudo = SUDO.lock().unwrap();
-    commands::execute_command(&mut fs, &mut sudo, input)
+    let mut term = TERM.lock().unwrap();
+    commands::execute_command(&mut fs, &mut sudo, &mut term, input)
 }
