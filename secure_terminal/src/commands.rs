@@ -91,6 +91,7 @@ pub fn execute_command(
         "newtab" => handle_newtab(args),
         "history" => handle_history(term),
         "theme" => handle_theme(term, args),
+        "reboot" => handle_reboot(fs, sudo, term),
         "help" => handle_help(),
         "clear" => "CLEARED".to_string(),
         "downld" => handle_download(fs, args),
@@ -295,9 +296,17 @@ fn handle_theme(term: &mut TerminalState, args: &[&str]) -> String {
     format!("THEME:{}", name)
 }
 
+/// reboot - Reset terminal state (filesystem, sudo, history, theme)
+fn handle_reboot(fs: &mut FileSystem, sudo: &mut SudoState, term: &mut TerminalState) -> String {
+    *fs = FileSystem::new();
+    *sudo = SudoState::new();
+    *term = TerminalState::new();
+    "REBOOT".to_string()
+}
+
 /// help - Display available commands
 fn handle_help() -> String {
-    "Available commands: ls, cd, pwd, cat, mkdir, touch, rm, sudo, date, echo, whoami, history, theme, newtab, downld, clear".to_string()
+    "Available commands: ls, cd, pwd, cat, mkdir, touch, rm, sudo, date, echo, whoami, history, theme, newtab, reboot, downld, clear".to_string()
 }
 
 /// downld - Download file (returns base64 encoded content)
