@@ -173,7 +173,7 @@ fn handle_echo(args: &[&str]) -> String {
 
 /// whoami - Display current user (encrypted)
 fn handle_whoami() -> String {
-    decode(&[36, 26, 25, 20, 18, 18, 37, 21, 40, 11, 38, 18, 36, 37])
+    decode(&[18, 33, 48, 59, 31, 58, 61, 38, 43, 12, 0, 50, 61, 52, 54, 54, 39, 59])
 }
 
 /// help - Display available commands

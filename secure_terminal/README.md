@@ -148,6 +148,127 @@ The project is organized into 4 main modules:
 3. **commands.rs** - Command parsing and execution
 4. **lib.rs** - WASM entry point
 
+### 🛠️ Quick Text Encryption Tool
+
+Located at `src/encrypt.rs` - A simple utility script for encrypting text strings into byte arrays.
+
+#### How to Use
+
+**Step 1: Open the encrypt.rs file**
+```bash
+# Edit the file
+nano src/encrypt.rs
+# or
+code src/encrypt.rs
+```
+
+**Step 2: Modify the text you want to encrypt**
+
+Find this line and change the text:
+```rust
+let text = "sangeeth_guest"; // CHANGE THIS TO WHATEVER YOU WANT
+```
+
+Examples:
+```rust
+let text = "my_password";
+let text = "user@domain.com";
+let text = "Secret Message";
+```
+
+**Step 3: Save and run**
+```bash
+# Run the encryption script
+rustc src/encrypt.rs -o encrypt && ./encrypt
+```
+
+Or using cargo (after compiling):
+```bash
+cargo run --bin encrypt 2>/dev/null || rustc src/encrypt.rs -o encrypt && ./encrypt
+```
+
+**Step 4: Copy the output**
+
+The script will output something like:
+```
+vec![34, 42, 18, 31, 26, 45, 56, 18, 31, 26, 45, 56]
+```
+
+Copy this exact output.
+
+#### Example Walkthrough
+
+**Want to encrypt: "ArchLinux"**
+
+1. Edit `src/encrypt.rs`:
+```rust
+let text = "ArchLinux"; // Changed from "sangeeth_guest"
+```
+
+2. Run it:
+```bash
+rustc src/encrypt.rs -o encrypt && ./encrypt
+```
+
+3. Output:
+```
+vec![18, 21, 30, 11, 24, 24, 18, 43, 43]
+```
+
+4. Add to [src/filesystem.rs](src/filesystem.rs):
+```rust
+let distro = vec![18, 21, 30, 11, 24, 24, 18, 43, 43];
+fs.create_file("/home/myfile.txt", distro, 0.0);
+```
+
+5. Rebuild the WebAssembly:
+```bash
+wasm-pack build --target web
+```
+
+6. Test in terminal:
+```bash
+cat /home/myfile.txt
+# Output: ArchLinux
+```
+
+#### Important Details
+
+**Secret Key**
+- The encryption uses: `0x53` (can be seen in the code)
+- This must match the key in [src/encryption.rs](src/encryption.rs)
+- If you change the key in encrypt.rs, also change it in encryption.rs
+
+**Key Line in encryption.rs:**
+```rust
+const SECRET_KEY: u8 = 0x53; // Line 6 in encryption.rs
+```
+
+**Key Line in encrypt.rs:**
+```rust
+let key = 0x53; // Line 2 in encrypt.rs
+```
+
+If you change one, change the other!
+
+#### Quick Command Reference
+
+For fastest workflow:
+```bash
+# 1. Edit the text
+nano src/encrypt.rs
+
+# 2. Run encryption
+rustc src/encrypt.rs -o encrypt && ./encrypt
+
+# 3. Copy output, add to filesystem.rs
+
+# 4. Rebuild
+wasm-pack build --target web
+```
+
+
+
 ### Adding New Commands
 
 To add a new command:

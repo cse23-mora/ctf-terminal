@@ -22,6 +22,7 @@ pub fn decode(data: &[u8]) -> String {
 ///
 /// # Returns
 /// Vector of encrypted bytes
+#[allow(dead_code)]
 pub fn encode(text: &str) -> Vec<u8> {
     text.as_bytes().iter().map(|&b| b ^ SECRET_KEY).collect()
 }

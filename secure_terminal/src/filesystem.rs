@@ -132,6 +132,7 @@ impl FileSystem {
     }
 
     /// Checks if a path points to a file
+    #[allow(dead_code)]
     pub fn is_file(&self, path: &str) -> bool {
         self.nodes
             .get(path)
