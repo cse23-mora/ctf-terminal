@@ -1,0 +1,15 @@
+{
+  "name": "secure_terminal",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "secure_terminal_bg.wasm",
+    "secure_terminal.js",
+    "secure_terminal.d.ts"
+  ],
+  "main": "secure_terminal.js",
+  "types": "secure_terminal.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

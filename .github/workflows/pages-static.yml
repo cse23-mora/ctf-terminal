@@ -28,8 +28,7 @@ jobs:
         run: |
           mkdir -p site
           cp -R web/. site/
-          mkdir -p site/pkg
-          cp -R secure_terminal/pkg/. site/pkg/
+          
 
       - name: Upload static site artifact
         uses: actions/upload-pages-artifact@v3
