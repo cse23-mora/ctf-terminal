@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Sangeeth's Secure Terminal</title>
+    <title>cse23's Secure Terminal</title>
     <style>
         :root {
             --bg-color: #0c0c0c;
@@ -22,7 +22,7 @@
 
     <div id="output"></div>
     <div id="input-line" style="display: none;">
-        <span id="prompt">sangeeth@portfolio:~$</span>
+        <span id="prompt">cse23@admin:~$</span>
         <input type="text" id="cmd" autofocus spellcheck="false" autocomplete="off">
     </div>
 
@@ -89,37 +89,8 @@
             URL.revokeObjectURL(url);
         }
 
-        function openInNewTab(rawUrl) {
-            if (!rawUrl || rawUrl.trim() === "") {
-                return "Usage: newtab <url>";
-            }
-
-            let normalized = rawUrl.trim();
-            if (!/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(normalized)) {
-                normalized = `https://${normalized}`;
-            }
-
-            let parsed;
-            try {
-                parsed = new URL(normalized);
-            } catch {
-                return `newtab: invalid URL '${rawUrl}'`;
-            }
-
-            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-                return "newtab: only http/https URLs are allowed";
-            }
-
-            const opened = window.open(parsed.toString(), "_blank", "noopener,noreferrer");
-            if (!opened) {
-                return "newtab: popup blocked by browser. Allow popups for this site.";
-            }
-
-            return `Opened new tab: ${parsed.toString()}`;
-        }
-
         function getAvailableCompletions(input) {
-            const commands = ["ls", "cd", "pwd", "cat", "mkdir", "touch", "rm", "date", "echo", "whoami", "downld", "clear", "theme", "history", "newtab", "reboot"];
+            const commands = ["ls", "cd", "pwd", "cat", "mkdir", "touch", "cp", "mv", "date", "echo", "whoami", "downld", "clear", "theme", "history", "reboot"];
             const parts = input.trim().split(" ");
             
             // If we're completing a command (first word)
@@ -163,8 +134,8 @@
                     "[ OK ] Initializing WASM Kernel...",
                     "[ OK ] Mounting Virtual Filesystem...",
                     "[ OK ] Decrypting Secure Blocks...",
-                    "[ OK ] User Session: sangeeth_guest verified.",
-                    "Welcome to Sangeeth-OS v2.0.0 (Updated)\nType 'help' to begin.\n"
+                    "[ OK ] User Session: cse23_guest verified.",
+                    "Welcome to cse23-OS v2.0.0 (Updated)\nType 'help' to begin.\n"
                 ];
 
                 for (const line of bootLines) {
@@ -176,7 +147,7 @@
                 }
 
                 input.value = "";
-                prompt.innerText = "sangeeth@portfolio:/home$";
+                prompt.innerText = "cse23@admin:/home$";
                 inputLine.style.display = "flex";
                 input.focus();
                 window.scrollTo(0, document.body.scrollHeight);
@@ -197,7 +168,7 @@
                     waitingForPassword = false;
                     const currentDir = run_command("__pwd__");
                     output.innerHTML += `<div>^C</div><br>`;
-                    prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                    prompt.innerText = `cse23@admin:${currentDir}$`;
                     input.value = "";
                     window.scrollTo(0, document.body.scrollHeight);
                     input.focus();
@@ -248,20 +219,14 @@
                             
                             output.innerHTML += `<div style="color: #00ff41;">✓ Downloading: ${filename}</div><br>`;
                             triggerDownload(filename, binaryData);
-                            prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
-                        } else if (result.startsWith("NEWTAB:")) {
-                            waitingForPassword = false;
-                            const currentDir = run_command("__pwd__");
-                            const openMessage = openInNewTab(result.slice("NEWTAB:".length));
-                            output.innerHTML += `<div>${escapeHtml(openMessage)}</div><br>`;
-                            prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                            prompt.innerText = `cse23@admin:${currentDir}$`;
                         } else if (result.startsWith("THEME:")) {
                             waitingForPassword = false;
                             const currentDir = run_command("__pwd__");
                             const themeName = result.slice("THEME:".length);
                             const themeMessage = setTheme(themeName);
                             output.innerHTML += `<div>${escapeHtml(themeMessage)}</div><br>`;
-                            prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                            prompt.innerText = `cse23@admin:${currentDir}$`;
                         } else if (result === "REBOOT") {
                             history = [];
                             historyIndex = -1;
@@ -275,7 +240,7 @@
                             } else if (result === "[sudo] authenticated successfully") {
                                 // Silently authenticate, don't show message
                             }
-                            prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                            prompt.innerText = `cse23@admin:${currentDir}$`;
                         }
                         
                         input.value = "";
@@ -297,7 +262,7 @@
                     } else if (result.startsWith("[sudo] password:")) {
                         // Password prompt - wait for next input
                         waitingForPassword = true;
-                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">cse23@admin:${currentDir}$</span> ${escapeHtml(val)}</div>`;
                         output.innerHTML += `<div style="color:var(--prompt-color);">${escapeHtml(result)}</div>`;
                         input.value = "";
                         prompt.innerText = ""; // Hide the prompt while waiting for password
@@ -311,18 +276,14 @@
                         const b64Content = parts.slice(2).join(":");
                         const binaryData = base64_decode(b64Content);
                         
-                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">cse23@admin:${currentDir}$</span> ${escapeHtml(val)}</div>`;
                         output.innerHTML += `<div style="color: #00ff41;">✓ Downloading: ${filename}</div><br>`;
                         
                         triggerDownload(filename, binaryData);
-                    } else if (result.startsWith("NEWTAB:")) {
-                        const openMessage = openInNewTab(result.slice("NEWTAB:".length));
-                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
-                        output.innerHTML += `<div>${escapeHtml(openMessage)}</div><br>`;
                     } else if (result.startsWith("THEME:")) {
                         const themeName = result.slice("THEME:".length);
                         const themeMessage = setTheme(themeName);
-                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">cse23@admin:${currentDir}$</span> ${escapeHtml(val)}</div>`;
                         output.innerHTML += `<div>${escapeHtml(themeMessage)}</div><br>`;
                     } else if (result === "REBOOT") {
                         history = [];
@@ -330,12 +291,12 @@
                         await renderBootSequence();
                         return;
                     } else {
-                        output.innerHTML += `<div><span style="color:var(--prompt-color)">sangeeth@portfolio:${currentDir}$</span> ${escapeHtml(val)}</div>`;
+                        output.innerHTML += `<div><span style="color:var(--prompt-color)">cse23@admin:${currentDir}$</span> ${escapeHtml(val)}</div>`;
                         output.innerHTML += `<div>${escapeHtml(result)}</div><br>`;
                     }
                     
                     // Update the visual prompt for the NEXT line
-                    prompt.innerText = `sangeeth@portfolio:${currentDir}$`;
+                    prompt.innerText = `cse23@admin:${currentDir}$`;
                     input.value = "";
                     window.scrollTo(0, document.body.scrollHeight);
                 }

@@ -112,7 +112,8 @@ JavaScript/Frontend
 - `cat` - Display file content
 - `mkdir` - Create directory
 - `touch` - Create file
-- `rm` - Remove file/directory
+- `cp` - Copy file/directory
+- `mv` - Move/rename file/directory
 - `date` - Show date/time
 - `echo` - Echo text
 - `whoami` - Show user

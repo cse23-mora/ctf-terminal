@@ -8,8 +8,8 @@ use crate::TerminalState;
 use js_sys::Date;
 use wasm_bindgen::prelude::JsValue;
 
-const SUDO_PASSWORD: &str = "Sangeeth@mypass123"; // Default sudo password
 const THEMES: [&str; 4] = ["matrix", "sunset", "dracula", "light"];
+const TEMP_DISABLED_COMMANDS: [&str; 2] = ["rm", "sudo"];
 
 fn is_binary_file(path: &str, content: &[u8]) -> bool {
     let lower = path.to_ascii_lowercase();
@@ -68,27 +68,18 @@ pub fn execute_command(
     term: &mut TerminalState,
     input: &str,
 ) -> String {
+    let trimmed = input.trim();
+
     // Check if we're waiting for a password
     if sudo.waiting_for_password {
-        if input.trim() == "__INTERRUPT__" || input.trim() == "^C" {
-            sudo.waiting_for_password = false;
-            sudo.pending_command = None;
+        sudo.waiting_for_password = false;
+        sudo.pending_command = None;
+
+        if trimmed == "__INTERRUPT__" || trimmed == "^C" {
             return "^C".to_string();
         }
 
-        // Verify the password
-        if input.trim() == SUDO_PASSWORD {
-            sudo.waiting_for_password = false;
-            sudo.authenticated = true;
-            
-            // Execute the pending command
-            if let Some(cmd_str) = sudo.pending_command.take() {
-                return execute_command(fs, sudo, term, &cmd_str);
-            }
-            return "[sudo] authenticated successfully".to_string();
-        } else {
-            return "[sudo] Sorry, try again.".to_string();
-        }
+        return "sudo: command temporarily disabled".to_string();
     }
 
     let parts: Vec<&str> = input.trim().split_whitespace().collect();
@@ -99,6 +90,11 @@ pub fn execute_command(
     let cmd = parts[0];
     let args = &parts[1..];
     let now = Date::now();
+
+    // Temporarily disable privileged/destructive commands.
+    if TEMP_DISABLED_COMMANDS.contains(&cmd) {
+        return format!("command not found: {}. Type 'help' for info.", cmd);
+    }
 
     // Internal command used by frontend to refresh prompt without polluting history
     if cmd == "__pwd__" {
@@ -138,7 +134,6 @@ pub fn execute_command(
         "echo" => handle_echo(args),
         "whoami" => handle_whoami(),
         "sudo" => handle_sudo_usage(),
-        "newtab" => handle_newtab(args),
         "history" => handle_history(term),
         "theme" => handle_theme(term, args),
         "reboot" => handle_reboot(fs, sudo, term),
@@ -340,29 +335,7 @@ fn handle_echo(args: &[&str]) -> String {
 
 /// whoami - Display current user (encrypted)
 fn handle_whoami() -> String {
-    decode(&[180, 180, 170, 203, 79, 83, 71, 101, 159, 137, 146])
-}
-
-/// newtab - Ask frontend to open a URL in a new tab
-fn handle_newtab(args: &[&str]) -> String {
-    if args.is_empty() {
-        return "Usage: newtab [http(s)://]<host-or-url>\nExample: newtab openai.com".to_string();
-    }
-
-    let raw = args.join(" ").trim().to_string();
-    if raw.chars().any(char::is_whitespace) {
-        return format!("newtab: invalid URL '{}'", raw);
-    }
-
-    let normalized = if raw.starts_with("http://") || raw.starts_with("https://") {
-        raw
-    } else if raw.contains("://") {
-        return "newtab: only http/https URLs are allowed".to_string();
-    } else {
-        format!("https://{}", raw)
-    };
-
-    format!("NEWTAB:{}", normalized)
+    decode(&[185, 142, 159, 140, 18])
 }
 
 /// history - Show command history from backend session
@@ -411,7 +384,7 @@ fn handle_reboot(fs: &mut FileSystem, sudo: &mut SudoState, term: &mut TerminalS
 
 /// help - Display available commands
 fn handle_help() -> String {
-    "Available commands: ls, cd, pwd, cat, mkdir, touch, cp, mv, rm, sudo, date, echo, whoami, history, theme, newtab, reboot, downld, clear".to_string()
+    "Available commands: ls, cd, pwd, cat, mkdir, touch, cp, mv, date, echo, whoami, history, theme, reboot, downld, clear".to_string()
 }
 
 /// downld - Download file (returns base64 encoded content)

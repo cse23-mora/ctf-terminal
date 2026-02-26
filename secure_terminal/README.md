@@ -27,7 +27,7 @@ Before you begin, ensure you have installed:
 
 ### 1. Clone or Navigate to Project
 ```bash
-cd /media/sangeeth/storage/mytests/terminal-web/secure_terminal
+cd /media/cse23/storage/mytests/terminal-web/secure_terminal
 ```
 
 ### 2. Install Dependencies
@@ -67,7 +67,7 @@ Navigate to `http://localhost:8000/web/` and start using the terminal!
 
 Once the terminal loads, you'll see:
 ```
-sangeeth@portfolio:~$
+cse23@admin:~$
 ```
 
 Start by exploring the filesystem:
@@ -88,8 +88,8 @@ cat projects.txt # View file contents
 cat contact.txt  # View contact information
 mkdir mydir      # Create new directory
 touch newfile    # Create empty file
-rm newfile       # Delete file
-rm mydir         # Delete empty directory (fails if not empty)
+cp projects.txt backup.txt  # Copy file
+mv backup.txt archive.txt   # Move/rename file
 ```
 
 #### System Info
@@ -104,7 +104,6 @@ help             # List all available commands
 echo "Hello"           # Print text
 clear                  # Clear terminal
 downld projects.txt    # Download file as base64
-sudo rm filename       # Remove file (password will be asked)
 ```
 
 ### Built-in Files
@@ -167,7 +166,7 @@ code src/encrypt.rs
 
 Find this line and change the text:
 ```rust
-let text = "sangeeth_guest"; // CHANGE THIS TO WHATEVER YOU WANT
+let text = "cse23_guest"; // CHANGE THIS TO WHATEVER YOU WANT
 ```
 
 Examples:
@@ -203,7 +202,7 @@ Copy this exact output.
 
 1. Edit `src/encrypt.rs`:
 ```rust
-let text = "ArchLinux"; // Changed from "sangeeth_guest"
+let text = "ArchLinux"; // Changed from "cse23_guest"
 ```
 
 2. Run it:
@@ -366,10 +365,10 @@ The web interface includes:
 
 ## 📝 License & Credit
 
-Created by Sangeeth (@sangeeth)
+Created by cse23 (@cse23)
 
-GitHub: [@sangeeth](https://github.com/sangeeth)  
-Email: [hello@sangeeth.dev](mailto:hello@sangeeth.dev)
+GitHub: [@cse23](https://github.com/cse23)  
+Email: [hello@cse23.org](mailto:hello@cse23.org)
 
 ## 🤝 Contributing
 
