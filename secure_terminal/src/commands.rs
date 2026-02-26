@@ -384,7 +384,26 @@ fn handle_reboot(fs: &mut FileSystem, sudo: &mut SudoState, term: &mut TerminalS
 
 /// help - Display available commands
 fn handle_help() -> String {
-    "Available commands: ls, cd, pwd, cat, mkdir, touch, cp, mv, date, echo, whoami, history, theme, reboot, downld, clear".to_string()
+    [
+        "Available commands:",
+        "ls      - List directory contents",
+        "cd      - Change current directory",
+        "pwd     - Show current directory",
+        "cat     - Display file content",
+        "mkdir   - Create a directory",
+        "touch   - Create an empty file",
+        "cp      - Copy file or directory",
+        "mv      - Move or rename file/directory",
+        "date    - Show current date/time",
+        "echo    - Print text",
+        "whoami  - Show current user",
+        "history - Show command history",
+        "theme   - Change terminal theme",
+        "reboot  - Reset terminal state",
+        "downld  - Download a file",
+        "clear   - Clear terminal output",
+    ]
+    .join("\n")
 }
 
 /// downld - Download file (returns base64 encoded content)
